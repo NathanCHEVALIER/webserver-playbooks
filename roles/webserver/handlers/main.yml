@@ -1,0 +1,7 @@
+---
+- name: Start Apache
+  become: yes
+  ansible.builtin.service:
+    name: apache2
+    state: started
+    enabled: yes

@@ -1,0 +1,42 @@
+---
+# tasks file for letsencrypt
+- name: Install Let's Encrypt
+  become: yes
+  block:
+    - name: install packages
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - python3-simplejson
+        - letsencrypt
+        - cron
+        - python3-certbot-nginx
+
+    - name: create letsencrypt directory
+      file:
+        name: /var/www/letsencrypt
+        state: directory
+
+- name: Generate Let's Encrypt Certificate
+  become: yes
+  block:
+    - name: Create letsencrypt certificate
+      shell: letsencrypt certonly -n --nginx -m {{ letsencrypt_email }} --agree-tos -d {{ working_domain }}
+      args:
+        creates: /etc/letsencrypt/live/{{ working_domain }}
+    - name: Generate dhparams
+      shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
+      args:
+        creates: /etc/nginx/dhparams.pem
+  notify:
+    - Reload Nginx
+
+- name: Setup certificate renewal
+  become: yes
+  block:
+    - name: Add letsencrypt cronjob for cert renewal
+      cron:
+        name: letsencrypt_renewal
+        special_time: monthly
+        job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{ letsencrypt_email }} --agree-tos {{ working_domain }} && service nginx reload

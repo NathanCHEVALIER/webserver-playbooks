@@ -1,0 +1,57 @@
+---
+- name: Update and Install packages
+  block:
+  - name: Upgrade first
+    become: true
+    apt: 
+      update_cache: yes 
+      force_apt_get: yes
+      cache_valid_time: 3600
+      upgrade: full
+
+  - name: Update all packages
+    package:
+      name: '*'
+      state: latest
+
+  - name: Install packages
+    package:
+      name:
+        - sudo
+        - inetutils-ping
+        - nftables
+      state: present
+
+- name: Setup SSH User
+  become: true
+  block:
+  - name: Create ssh-user group
+    ansible.builtin.group:
+      name: ssh-user
+      state: present
+
+  - name: Create & setup user account
+    ansible.builtin.user:
+      name: "{{ ssh_user_name }}"
+      password: "{{ ansible_become_password | password_hash('sha512_crypt') }}"
+      groups:
+        - sudo
+        - ssh-user
+      state: present
+      shell: /bin/bash
+      update_password: on_create
+      append: yes
+  
+  - name: Copy ssh key file from host to server
+    copy: 
+      src: "{{ ssh_key_path }}"
+      dest: "/tmp/host-id_rsa.pub"
+      mode: '0777'
+    when: ssh_key_deploy
+
+  - name: Add SSH public key for user
+    authorized_key:
+      user: "{{ ssh_user_name }}"
+      key: "{{ lookup('file', '{{ ssh_key_path }}') }}"
+      state: present
+    when: ssh_key_deploy

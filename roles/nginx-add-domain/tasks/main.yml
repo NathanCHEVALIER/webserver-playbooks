@@ -1,0 +1,24 @@
+---
+# tasks file nginx-add-domain
+- name: Set Up HTTPS Nginx Domain Server
+  become: yes
+  block:
+    - name: Install nginx site for {{ working_domain }}
+      ansible.builtin.blockinfile:
+        marker: "## {mark} ANSIBLE MANAGED BLOCK: {{ working_domain }} passed to port {{ working_port }} ##"
+        block: "{{ lookup('template', 'nginx-https.part.j2') }}"
+        path: /etc/nginx/conf.d/http.conf
+      when: setup_ssl
+
+- name: Set Up Nginx Domain Server (without HTTPS)
+  become: yes
+  block:
+    - name: Install nginx site for {{ working_domain }}
+      ansible.builtin.blockinfile:
+        marker: "## {mark} ANSIBLE MANAGED BLOCK: {{ working_domain }} passed to port {{ working_port }} ##"
+        block: "{{ lookup('template', 'nginx-http.part.j2') }}"
+        path: /etc/nginx/conf.d/http.conf
+      when: not setup_ssl
+
+  notify:
+    - Reload Nginx

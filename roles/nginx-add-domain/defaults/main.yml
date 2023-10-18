@@ -1,0 +1,4 @@
+service_name: "example"
+working_domain: "example.com"
+working_port: 80
+setup_ssl: false

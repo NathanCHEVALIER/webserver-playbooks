@@ -1,0 +1,10 @@
+---
+- name: Apache
+  become: yes
+  block:
+    - name: Install Apache2
+      package:
+        name: apache2
+        state: present
+  notify:
+    Start Apache

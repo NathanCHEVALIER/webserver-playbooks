@@ -1,0 +1,16 @@
+upstream {{ service_name }} {
+    server 127.0.0.1:{{ working_port }};
+}
+
+server {
+    listen 80;
+    server_name {{ working_domain }};
+
+    access_log /var/log/nginx/{{ working_domain }}.access.log;
+    error_log /var/log/nginx/{{ working_domain }}.error.log;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://{{ service_name }};
+    }
+}

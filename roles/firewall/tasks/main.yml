@@ -1,0 +1,17 @@
+---
+- name: Setup Firewall
+  become: yes
+  block:
+    - name: Install nftables
+      package:
+        name: nftables
+        state: present
+
+    - name: Config nftables
+      ansible.builtin.copy:
+        src: ./templates/nftables.conf.j2
+        dest: /etc/nftables.conf
+  
+  notify:
+    - Restart nftables
+

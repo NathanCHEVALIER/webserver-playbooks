@@ -1,0 +1,61 @@
+---
+# tasks file for nginx
+- name: Install nginx
+  become: yes
+  block:
+    - name: Install Nginx package
+      apt:
+        pkg: nginx
+        state: present
+        update_cache: true
+
+    - name: Install http tools
+      apt:
+        pkg: apache2-utils
+        state: present
+        update_cache: true
+
+  notify:
+    - Start Nginx
+
+- name: Set Up nginx
+  become: yes
+  block:
+    - name: Create & setup user account
+      ansible.builtin.user:
+        name: nginx
+        state: present
+        append: yes
+
+    - name: Remove default nginx config
+      file:
+        name: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Install system nginx config
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+
+    - name: Install nginx proxy_params
+      template:
+        src: templates/nginx-proxy_params.j2
+        dest: /etc/nginx/proxy_params
+
+    - name: Create htpasswd file
+      template:
+        src: templates/nginx-htpasswd.j2
+        dest: /etc/nginx/.htpasswd
+
+    - name: Install basic nginx site for letsencrypt requests
+      template:
+        src: templates/nginx-http.j2
+        dest: /etc/nginx/conf.d/http.conf
+
+    - name: Setup default SSL nginx configuration
+      template:
+        src: templates/nginx-ssl.conf.j2
+        dest: /etc/nginx/conf.d/ssl.conf
+
+  notify:
+    - Reload Nginx

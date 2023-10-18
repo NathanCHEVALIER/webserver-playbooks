@@ -1,0 +1,88 @@
+---
+- name: Harden SSH
+  block:
+    - name: Make sure group wheel is not in the sudoers configuration
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: absent
+        regexp: '^%wheel'
+
+    - name: Allow only ssh-user group
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'AllowGroups'
+        line: 'AllowGroups ssh-user'
+    
+    - name: Ensure SSH empty password is not permitted
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'PermitEmptyPasswords '
+        line: PermitEmptyPasswords no
+
+    - name: Ensure SSH Root user is not permitted
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'PermitRootLogin '
+        line: PermitRootLogin no
+    
+    - name: Disable SSH Protocol 1 (Force 2) (R1 ANSSI)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'Protocol '
+        line: 'Protocol 2'
+    
+    - name: Setup SSH session timeout
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'ClientAliveInterval '
+        line: 'ClientAliveInterval 3000'
+    
+    - name: Disable SSH X11 Forwarding (R28 ANSSI)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'X11Forwarding '
+        line: 'X11Forwarding no'
+
+    - name: Remove Telnet, RSH, Rlogin (R3 ANSSI)
+      package:
+        name:
+          - telnet
+          - rsh-client
+          - rlogin
+        state: absent
+    
+    #- name: Configure algorithms (R15 ANSSI)
+    #  ansible.builtin.lineinfile:
+    #    path: /etc/ssh/sshd_config
+    #    line: "{{ item }}"
+    #  with_items:
+    #    - 'Ciphers aes256-ctr,aes192-ctr,aes128-ctr'
+    #    - 'MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com'
+
+    - name: Use privilege Separation (R16 ANSSI)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'UsePrivilegeSeparation '
+        line: 'UsePrivilegeSeparation sandbox'
+    
+    - name: Restrict User Environment (R23 ANSSI)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'PermitUserEnvironment '
+        line: 'PermitUserEnvironment no'
+
+    - name: Change Listen Address and port from default (R25 R26 ANSSI)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'ListenAddress '
+        line: 'ListenAddress 0.0.0.0:52250'
+
+    - name: Change Listen Address and port from default (R25 R26 ANSSI)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: 'Port '
+        line: 'Port 52250'
+
+  notify:
+    - Restart ssh
+

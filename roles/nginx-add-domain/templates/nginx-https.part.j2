@@ -1,0 +1,38 @@
+upstream {{ service_name }} {
+    server 127.0.0.1:{{ working_port }};
+}
+
+server {
+    listen 80;
+    server_name {{ working_domain }};
+
+    # Used by Let's Encrypt for verification challenge
+    location /.well-known/acme-challenge {
+        root /var/www/letsencrypt;
+        try_files $uri $uri/ =404;
+    }
+
+    location / {
+        rewrite ^ https://{{ working_domain }}$request_uri? permanent;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ working_domain }};
+
+    include conf.d/ssl.conf;
+
+    ssl_certificate         /etc/letsencrypt/live/{{ working_domain }}/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/{{ working_domain }}/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/{{ working_domain }}/fullchain.pem;
+
+    access_log /var/log/nginx/{{ working_domain }}.access.log;
+    error_log /var/log/nginx/{{ working_domain }}.error.log;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://{{ service_name }};
+    }
+}
+
